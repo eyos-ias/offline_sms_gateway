@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:telephony/telephony.dart';
+import 'package:shelf/shelf.dart' as shelf;
+import 'package:shelf/shelf_io.dart' as io;
 
 onBackgroundMessage(SmsMessage message) {
   debugPrint("onBackgroundMessage called");
@@ -27,6 +29,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initPlatformState();
+    startServer();
   }
 
   onMessage(SmsMessage message) async {
@@ -41,13 +44,7 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-
     final bool? result = await telephony.requestPhoneAndSmsPermissions;
 
     if (result != null && result) {
@@ -58,7 +55,19 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
   }
 
-  // This widget is the root of your application.
+  void startServer() {
+    var handler = const shelf.Pipeline()
+        .addMiddleware(shelf.logRequests())
+        .addHandler(_echoRequest);
+
+    io.serve(handler, '0.0.0.0', 8080);
+    print("server");
+  }
+
+  shelf.Response _echoRequest(shelf.Request request) {
+    return shelf.Response.ok('Request for "${request.url}"');
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -118,110 +127,30 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 60),
-            Text(_connectionStatus.toString())
+            Text(_connectionStatus.toString()),
+            ElevatedButton(
+              onPressed: () async {
+                final Telephony telephony = Telephony.instance;
+
+                telephony.sendSms(
+                  to: "09209450855",
+                  message: "Hello world!",
+                  statusListener: (SendStatus status) {
+                    if (status == SendStatus.DELIVERED) {
+                      print("SMS has been delivered!");
+                    } else if (status == SendStatus.SENT) {
+                      print("SMS has been sent!");
+                    } else {
+                      print("Failed to send SMS!");
+                    }
+                  },
+                );
+              },
+              child: Text('Send SMS'),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'dart:async';
-// import 'package:telephony/telephony.dart';
-
-// onBackgroundMessage(SmsMessage message) {
-//   debugPrint("onBackgroundMessage called");
-//   debugPrint(message.body);
-// }
-
-// backgrounMessageHandler(SmsMessage message) async {
-//   // Handle background message
-//   Telephony.instance
-//       .sendSms(to: "0920945085", message: "Message from background");
-// }
-
-// void main() {
-//   runApp(MyApp());
-// }
-
-// class MyApp extends StatefulWidget {
-//   @override
-//   _MyAppState createState() => _MyAppState();
-// }
-
-// class _MyAppState extends State<MyApp> {
-//   String _message = "";
-//   final telephony = Telephony.instance;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     initPlatformState();
-//   }
-
-//   onMessage(SmsMessage message) async {
-//     debugPrint("new message: ${message.body}");
-//     setState(() {
-//       _message = message.body ?? "Error reading message body.";
-//     });
-//   }
-
-//   onSendStatus(SendStatus status) {
-//     setState(() {
-//       _message = status == SendStatus.SENT ? "sent" : "delivered";
-//     });
-//   }
-
-//   // Platform messages are asynchronous, so we initialize in an async method.
-//   Future<void> initPlatformState() async {
-//     // Platform messages may fail, so we use a try/catch PlatformException.
-//     // If the widget was removed from the tree while the asynchronous platform
-//     // message was in flight, we want to discard the reply rather than calling
-//     // setState to update our non-existent appearance.
-
-//     final bool? result = await telephony.requestPhoneAndSmsPermissions;
-
-//     if (result != null && result) {
-//       telephony.listenIncomingSms(
-//           onNewMessage: onMessage,
-//           onBackgroundMessage: onBackgroundMessage,
-//           listenInBackground: true);
-//     }
-
-//     if (!mounted) return;
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//         home: Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Plugin example app'),
-//       ),
-//       body: Column(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           Center(child: Text("Latest received SMS: $_message")),
-//           TextButton(
-//             onPressed: () async {
-//               // await telephony.openDialer("123413453");
-//               print("sending");
-
-//               final Telephony telephony = Telephony.instance;
-
-//               var simState = await telephony.simOperatorName;
-//               print("simstate: ${simState}");
-//               await telephony.sendSms(
-//                   to: "0920945085", isMultipart: true, message: "testing123");
-//               //     message:
-//               //         "VgpFc2tlbmRlciBBaGVtZWQKVElOOiAwMDQ4MDQ4MzQ1ClNPVi0zNzQ2NwowMS8zMS8yMDI0IDA5OjQzOjU5Ck1vdHVtYQowMzM2MSAvIDI1NTEzClRPUCAzIEZpbmlzaGVkIEdvb2RzCkltbWVkaWF0ZSBQYXltZW50CjIgTGl0ZXIgQm90dGxlZCBXYXRlcmAxLDAwMGA2LDAwMCBQY3NgMTUuNjUyMjAwIEJyCjEwOCwwMDAuMTggQnI=");
-//               // print("sent");
-//             },
-//             child: const Text('Send Text'),
-//           )
-//         ],
-//       ),
-//     ));
-//   }
-// }
