@@ -96,6 +96,34 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    shelf.Response _echoRequest(shelf.Request request) {
+      final Telephony telephony = Telephony.instance;
+
+      telephony.sendSms(
+        to: "0920945085",
+        message: "Hello world! (from the server)",
+        statusListener: (SendStatus status) {
+          if (status == SendStatus.DELIVERED) {
+            print("SMS has been delivered!");
+          } else if (status == SendStatus.SENT) {
+            print("SMS has been sent!");
+          } else {
+            print("Failed to send SMS!");
+          }
+        },
+      );
+      return shelf.Response.ok('Request for "${request.url}"');
+    }
+
+    void startServer() {
+      var handler = const shelf.Pipeline()
+          .addMiddleware(shelf.logRequests())
+          .addHandler(_echoRequest);
+
+      io.serve(handler, '0.0.0.0', 8081);
+      print("server");
+    }
+
     return Scaffold(
       body: Center(
         child: Column(
@@ -115,6 +143,7 @@ class _HomePageState extends State<HomePage> {
                         ? ConnectionStatus.CONNECTING
                         : ConnectionStatus.DISCONNECTING;
                   });
+                  startServer();
                   await Future.delayed(const Duration(seconds: 2));
                   setState(
                     () {
@@ -133,7 +162,7 @@ class _HomePageState extends State<HomePage> {
                 final Telephony telephony = Telephony.instance;
 
                 telephony.sendSms(
-                  to: "09209450855",
+                  to: "0920945085",
                   message: "Hello world!",
                   statusListener: (SendStatus status) {
                     if (status == SendStatus.DELIVERED) {
