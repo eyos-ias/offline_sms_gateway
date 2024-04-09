@@ -9,6 +9,8 @@ import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart' as shelfRouter;
 
+import 'package:intl/intl.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -66,7 +68,8 @@ class _HomePageState extends State<HomePage> {
 
   void updateOutput(String newOutput) {
     setState(() {
-      output += '> $newOutput\n';
+      output +=
+          '> $newOutput [${DateFormat('yyyy-MM-dd kk:mm:ss').format(DateTime.now())}]\n';
     });
   }
 
@@ -218,7 +221,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 100),
+              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 70),
               child: Transform.scale(
                 scale: 4,
                 child: Switch(
@@ -248,7 +251,7 @@ class _HomePageState extends State<HomePage> {
             "$wifiIp" == "null" && serviceStarted
                 ? const Text(
                     "mobile data is needed to establish a connection between master and OG")
-                : SizedBox(),
+                : const SizedBox(),
             const Spacer(),
             CLIOutput(
               output: output.toLowerCase(),

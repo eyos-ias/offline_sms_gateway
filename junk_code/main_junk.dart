@@ -1,194 +1,194 @@
-import 'package:flutter/material.dart';
-import 'package:network_info_plus/network_info_plus.dart';
-import 'dart:async';
-import 'package:telephony/telephony.dart';
-import 'package:shelf/shelf.dart' as shelf;
-import 'package:shelf/shelf_io.dart' as io;
+// import 'package:flutter/material.dart';
+// import 'package:network_info_plus/network_info_plus.dart';
+// import 'dart:async';
+// import 'package:telephony/telephony.dart';
+// import 'package:shelf/shelf.dart' as shelf;
+// import 'package:shelf/shelf_io.dart' as io;
 
-onBackgroundMessage(SmsMessage message) {
-  debugPrint("onBackgroundMessage called");
-}
+// onBackgroundMessage(SmsMessage message) {
+//   debugPrint("onBackgroundMessage called");
+// }
 
-void main() {
-  runApp(const MyApp());
-}
+// void main() {
+//   runApp(const MyApp());
+// }
 
-enum ConnectionStatus { CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED }
+// enum ConnectionStatus { CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+// class MyApp extends StatefulWidget {
+//   const MyApp({super.key});
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
+//   @override
+//   State<MyApp> createState() => _MyAppState();
+// }
 
-class _MyAppState extends State<MyApp> {
-  String _message = "";
-  final telephony = Telephony.instance;
+// class _MyAppState extends State<MyApp> {
+//   String _message = "";
+//   final telephony = Telephony.instance;
 
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-    startServer();
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     initPlatformState();
+//     startServer();
+//   }
 
-  onMessage(SmsMessage message) async {
-    setState(() {
-      _message = message.body ?? "Error reading message body.";
-    });
-  }
+//   onMessage(SmsMessage message) async {
+//     setState(() {
+//       _message = message.body ?? "Error reading message body.";
+//     });
+//   }
 
-  onSendStatus(SendStatus status) {
-    setState(() {
-      _message = status == SendStatus.SENT ? "sent" : "delivered";
-    });
-  }
+//   onSendStatus(SendStatus status) {
+//     setState(() {
+//       _message = status == SendStatus.SENT ? "sent" : "delivered";
+//     });
+//   }
 
-  Future<void> initPlatformState() async {
-    final bool? result = await telephony.requestPhoneAndSmsPermissions;
+//   Future<void> initPlatformState() async {
+//     final bool? result = await telephony.requestPhoneAndSmsPermissions;
 
-    if (result != null && result) {
-      telephony.listenIncomingSms(
-          onNewMessage: onMessage, onBackgroundMessage: onBackgroundMessage);
-    }
+//     if (result != null && result) {
+//       telephony.listenIncomingSms(
+//           onNewMessage: onMessage, onBackgroundMessage: onBackgroundMessage);
+//     }
 
-    if (!mounted) return;
-  }
+//     if (!mounted) return;
+//   }
 
-  void startServer() async {
-    final NetworkInfo networkInfo = NetworkInfo();
-    String? wifiIp = await networkInfo.getWifiIP();
+//   void startServer() async {
+//     final NetworkInfo networkInfo = NetworkInfo();
+//     String? wifiIp = await networkInfo.getWifiIP();
 
-    print("Wi-Fi IP: $wifiIp");
-    var handler = const shelf.Pipeline()
-        .addMiddleware(shelf.logRequests())
-        .addHandler(_echoRequest);
+//     print("Wi-Fi IP: $wifiIp");
+//     var handler = const shelf.Pipeline()
+//         .addMiddleware(shelf.logRequests())
+//         .addHandler(_echoRequest);
 
-    io.serve(handler, '0.0.0.0', 8080);
-    print("server");
-  }
+//     io.serve(handler, '0.0.0.0', 8080);
+//     print("server");
+//   }
 
-  shelf.Response _echoRequest(shelf.Request request) {
-    return shelf.Response.ok('Request for "${request.url}"');
-  }
+//   shelf.Response _echoRequest(shelf.Request request) {
+//     return shelf.Response.ok('Request for "${request.url}"');
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: HomePage(
-        message: _message,
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Flutter Demo',
+//       theme: ThemeData(
+//         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+//         useMaterial3: true,
+//       ),
+//       home: HomePage(
+//         message: _message,
+//       ),
+//     );
+//   }
+// }
 
-class HomePage extends StatefulWidget {
-  final String message;
-  const HomePage({super.key, required this.message});
+// class HomePage extends StatefulWidget {
+//   final String message;
+//   const HomePage({super.key, required this.message});
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
 
-class _HomePageState extends State<HomePage> {
-  ConnectionStatus _connectionStatus = ConnectionStatus.DISCONNECTED;
+// class _HomePageState extends State<HomePage> {
+//   ConnectionStatus _connectionStatus = ConnectionStatus.DISCONNECTED;
 
-  @override
-  Widget build(BuildContext context) {
-    shelf.Response _echoRequest(shelf.Request request) {
-      final Telephony telephony = Telephony.instance;
+//   @override
+//   Widget build(BuildContext context) {
+//     shelf.Response _echoRequest(shelf.Request request) {
+//       final Telephony telephony = Telephony.instance;
 
-      telephony.sendSms(
-        to: "0942580385",
-        message:
-            "Hello world! (from the server) ${DateTime.now().hour}:${DateTime.now().minute}",
-        statusListener: (SendStatus status) {
-          if (status == SendStatus.DELIVERED) {
-            print("SMS has been delivered!");
-          } else if (status == SendStatus.SENT) {
-            print("SMS has been sents!");
-          } else {
-            print("Failed to send SMS!");
-          }
-        },
-      );
-      return shelf.Response.ok('Request for "${request.url}"');
-    }
+//       telephony.sendSms(
+//         to: "0942580385",
+//         message:
+//             "Hello world! (from the server) ${DateTime.now().hour}:${DateTime.now().minute}",
+//         statusListener: (SendStatus status) {
+//           if (status == SendStatus.DELIVERED) {
+//             print("SMS has been delivered!");
+//           } else if (status == SendStatus.SENT) {
+//             print("SMS has been sents!");
+//           } else {
+//             print("Failed to send SMS!");
+//           }
+//         },
+//       );
+//       return shelf.Response.ok('Request for "${request.url}"');
+//     }
 
-    void startServer() async {
-      var handler = const shelf.Pipeline()
-          .addMiddleware(shelf.logRequests())
-          .addHandler(_echoRequest);
+//     void startServer() async {
+//       var handler = const shelf.Pipeline()
+//           .addMiddleware(shelf.logRequests())
+//           .addHandler(_echoRequest);
 
-      final NetworkInfo networkInfo = NetworkInfo();
-      String? wifiIp = await networkInfo.getWifiIP();
+//       final NetworkInfo networkInfo = NetworkInfo();
+//       String? wifiIp = await networkInfo.getWifiIP();
 
-      print("Wi-Fi IP: $wifiIp");
-      io.serve(handler, '0.0.0.0', 8081);
-      print("server");
-    }
+//       print("Wi-Fi IP: $wifiIp");
+//       io.serve(handler, '0.0.0.0', 8081);
+//       print("server");
+//     }
 
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Latest received SMS: ${widget.message}"),
-            const SizedBox(
-              height: 60,
-            ),
-            Transform.scale(
-              scale: 4,
-              child: Switch(
-                value: _connectionStatus == ConnectionStatus.CONNECTED,
-                onChanged: (value) async {
-                  setState(() {
-                    _connectionStatus = value
-                        ? ConnectionStatus.CONNECTING
-                        : ConnectionStatus.DISCONNECTING;
-                  });
-                  startServer();
-                  await Future.delayed(const Duration(seconds: 2));
-                  setState(
-                    () {
-                      _connectionStatus = value
-                          ? ConnectionStatus.CONNECTED
-                          : ConnectionStatus.DISCONNECTED;
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 60),
-            Text(_connectionStatus.toString()),
-            ElevatedButton(
-              onPressed: () async {
-                final Telephony telephony = Telephony.instance;
-                telephony.sendSms(
-                  to: "0920945085",
-                  message: "Hello world!",
-                  statusListener: (SendStatus status) {
-                    if (status == SendStatus.DELIVERED) {
-                      print("SMS has been delivered!");
-                    } else if (status == SendStatus.SENT) {
-                      print("SMS has been sent!");
-                    } else {
-                      print("Failed to send SMS!");
-                    }
-                  },
-                );
-              },
-              child: Text('Send SMS'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//     return Scaffold(
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text("Latest received SMS: ${widget.message}"),
+//             const SizedBox(
+//               height: 60,
+//             ),
+//             Transform.scale(
+//               scale: 4,
+//               child: Switch(
+//                 value: _connectionStatus == ConnectionStatus.CONNECTED,
+//                 onChanged: (value) async {
+//                   setState(() {
+//                     _connectionStatus = value
+//                         ? ConnectionStatus.CONNECTING
+//                         : ConnectionStatus.DISCONNECTING;
+//                   });
+//                   startServer();
+//                   await Future.delayed(const Duration(seconds: 2));
+//                   setState(
+//                     () {
+//                       _connectionStatus = value
+//                           ? ConnectionStatus.CONNECTED
+//                           : ConnectionStatus.DISCONNECTED;
+//                     },
+//                   );
+//                 },
+//               ),
+//             ),
+//             const SizedBox(height: 60),
+//             Text(_connectionStatus.toString()),
+//             ElevatedButton(
+//               onPressed: () async {
+//                 final Telephony telephony = Telephony.instance;
+//                 telephony.sendSms(
+//                   to: "0920945085",
+//                   message: "Hello world!",
+//                   statusListener: (SendStatus status) {
+//                     if (status == SendStatus.DELIVERED) {
+//                       print("SMS has been delivered!");
+//                     } else if (status == SendStatus.SENT) {
+//                       print("SMS has been sent!");
+//                     } else {
+//                       print("Failed to send SMS!");
+//                     }
+//                   },
+//                 );
+//               },
+//               child: Text('Send SMS'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

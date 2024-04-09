@@ -16,7 +16,7 @@ class _CLIOutputState extends State<CLIOutput> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 300,
+      height: 500,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.black,
