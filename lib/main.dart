@@ -87,29 +87,29 @@ class _HomePageState extends State<HomePage> {
     }
 
     //handle the get requests (get sms and stuff)
-    router.get('/get-sms', (shelf.Request request) async {
+    router.get('/get-sms/<time|.*>',
+        (shelf.Request request, String time) async {
       updateOutput("fetching sms");
-      DateTime now = DateTime.now();
-      DateTime today = DateTime(now.year, now.month, now.day);
-      List<SmsMessage> messages = await telephony.getInboxSms();
 
+      // Convert the time parameter to a DateTime object
+      DateTime filterDate =
+          DateTime.fromMillisecondsSinceEpoch(int.parse(time) * 1000);
+
+      List<SmsMessage> messages = await telephony.getInboxSms();
+      print("filter time ${time}");
       List<Map<String, String>> smsList = [];
-      bool sent = false;
+      print(messages[0].date);
       for (SmsMessage message in messages) {
-        // print("${message.address}: ${message.body}");
         DateTime messageDate =
             DateTime.fromMillisecondsSinceEpoch((message.date ?? 0) * 1000);
 
-        if (!sent) {
-          print(messages[0].date);
-        }
-        sent = true;
+        // Only add the message to the list if its date is after the filter date
 
-        if (messageDate.isAfter(today)) {
+        if (message.date! > 1712609425167) {
           smsList.add({
             'address': message.address ?? "unknown",
             'body': message.body ?? "unknown",
-            'date': messageDate.toIso8601String(),
+            'date': message.date.toString(),
           });
         }
       }
