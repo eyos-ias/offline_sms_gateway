@@ -12,6 +12,30 @@ class CLIOutput extends StatefulWidget {
 }
 
 class _CLIOutputState extends State<CLIOutput> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollToBottom();
+  }
+
+  @override
+  void didUpdateWidget(CLIOutput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.output != oldWidget.output) {
+      _scrollToBottom();
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -24,10 +48,11 @@ class _CLIOutputState extends State<CLIOutput> {
       ),
       child: CupertinoScrollbar(
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: Text(
             widget.output,
             style: const TextStyle(
-                fontFamily: 'Courier', fontSize: 14, color: Colors.white),
+                fontFamily: 'Courier', fontSize: 12, color: Colors.white),
           ),
         ),
       ),
