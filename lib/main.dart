@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
 
         // Only add the message to the list if its date is after the filter date
 
-        if (message.date! > 1712609425167) {
+        if (message.date! > int.parse(time)) {
           smsList.add({
             'address': message.address ?? "unknown",
             'body': message.body ?? "unknown",
@@ -128,30 +128,88 @@ class _HomePageState extends State<HomePage> {
       );
     });
 
-// handles all the sent sms
-    router.get('/get-sent-sms', (shelf.Request request) async {
-      updateOutput("fetching sms");
-      DateTime now = DateTime.now();
-      DateTime today = DateTime(now.year, now.month, now.day);
-      List<SmsMessage> messages = await telephony.getSentSms();
 
+
+//handles all the sms
+router.get('/get-sms', (shelf.Request request) async {
+  updateOutput("fetching sms");
+
+  List<SmsMessage> messages = await telephony.getInboxSms();
+  List<Map<String, String>> smsList = [];
+  for (SmsMessage message in messages) {
+    smsList.add({
+      'address': message.address ?? "unknown",
+      'body': message.body ?? "unknown",
+      'date': message.date.toString(),
+    });
+  }
+
+  updateOutput("Received GET request");
+
+  var data = {
+    'message': 'This is a GET request',
+    'timestamp': DateTime.now().toIso8601String(),
+    'data': smsList,
+  };
+
+  return shelf.Response.ok(
+    jsonEncode(data),
+    headers: {'Content-Type': 'application/json'},
+  );
+});
+
+
+//get sent sms without any parameters
+router.get('/get-sent-sms', (shelf.Request request) async {
+  updateOutput("fetching sent sms");
+
+  List<SmsMessage> messages = await telephony.getSentSms();
+  List<Map<String, String>> smsList = [];
+  for (SmsMessage message in messages) {
+    smsList.add({
+      'address': message.address ?? "unknown",
+      'body': message.body ?? "unknown",
+      'date': message.date.toString(),
+    });
+  }
+
+  updateOutput("Received GET request");
+
+  var data = {
+    'message': 'This is a GET request',
+    'timestamp': DateTime.now().toIso8601String(),
+    'data': smsList,
+  };
+
+  return shelf.Response.ok(
+    jsonEncode(data),
+    headers: {'Content-Type': 'application/json'},
+  );
+});
+
+// handles all the sent sms wth timestamps
+    router.get('/get-sent-sms/<time|.*>',
+        (shelf.Request request, String time) async {
+      updateOutput("fetching sent sms");
+
+      // Convert the time parameter to a DateTime object
+      DateTime filterDate =
+          DateTime.fromMillisecondsSinceEpoch(int.parse(time) * 1000);
+
+      List<SmsMessage> messages = await telephony.getSentSms();
+      print("filter time ${time}");
       List<Map<String, String>> smsList = [];
-      bool sent = false;
+      print(messages[0].date);
       for (SmsMessage message in messages) {
-        // print("${message.address}: ${message.body}");
         DateTime messageDate =
             DateTime.fromMillisecondsSinceEpoch((message.date ?? 0) * 1000);
 
-        if (!sent) {
-          print(messages[0].date);
-        }
-        sent = true;
-
-        if (messageDate.isAfter(today)) {
+        // Only add the message to the list if its date is after the filter date
+        if (message.date! > int.parse(time)) {
           smsList.add({
             'address': message.address ?? "unknown",
             'body': message.body ?? "unknown",
-            'date': messageDate.toIso8601String(),
+            'date': message.date.toString(),
           });
         }
       }
@@ -214,7 +272,16 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Offline Gateway'),
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Offline Gateway'),
+            Text(
+              'v0.0.2',
+              style: TextStyle(fontSize: 12),
+            )
+          ],
+        ),
       ),
       body: Center(
         child: Column(
