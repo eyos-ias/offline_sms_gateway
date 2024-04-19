@@ -9,6 +9,10 @@ import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart' as shelfRouter;
 
+// import 'package:sms_advanced/sms_advanced.dart' as SmsAdvanced;
+// import 'package:flutter_sms/flutter_sms.dart';
+// import 'package:background_sms/background_sms.dart' as bs;
+
 import 'package:intl/intl.dart';
 
 void main() {
@@ -79,11 +83,13 @@ class _HomePageState extends State<HomePage> {
 
     final router = shelfRouter.Router();
 
-    final bool? result = await telephony.requestPhoneAndSmsPermissions;
+    final bool? result = await telephony.requestSmsPermissions;
 
     if (result != null && result) {
       telephony.listenIncomingSms(
           onNewMessage: onMessage, onBackgroundMessage: onBackgroundMessage);
+    } else {
+      updateOutput("permission denied");
     }
 
     //handle the get requests (get sms and stuff)
@@ -128,64 +134,61 @@ class _HomePageState extends State<HomePage> {
       );
     });
 
-
-
 //handles all the sms
-router.get('/get-sms', (shelf.Request request) async {
-  updateOutput("fetching sms");
+    router.get('/get-sms', (shelf.Request request) async {
+      updateOutput("fetching sms");
 
-  List<SmsMessage> messages = await telephony.getInboxSms();
-  List<Map<String, String>> smsList = [];
-  for (SmsMessage message in messages) {
-    smsList.add({
-      'address': message.address ?? "unknown",
-      'body': message.body ?? "unknown",
-      'date': message.date.toString(),
+      List<SmsMessage> messages = await telephony.getInboxSms();
+      List<Map<String, String>> smsList = [];
+      for (SmsMessage message in messages) {
+        smsList.add({
+          'address': message.address ?? "unknown",
+          'body': message.body ?? "unknown",
+          'date': message.date.toString(),
+        });
+      }
+
+      updateOutput("Received GET request");
+
+      var data = {
+        'message': 'This is a GET request',
+        'timestamp': DateTime.now().toIso8601String(),
+        'data': smsList,
+      };
+
+      return shelf.Response.ok(
+        jsonEncode(data),
+        headers: {'Content-Type': 'application/json'},
+      );
     });
-  }
-
-  updateOutput("Received GET request");
-
-  var data = {
-    'message': 'This is a GET request',
-    'timestamp': DateTime.now().toIso8601String(),
-    'data': smsList,
-  };
-
-  return shelf.Response.ok(
-    jsonEncode(data),
-    headers: {'Content-Type': 'application/json'},
-  );
-});
-
 
 //get sent sms without any parameters
-router.get('/get-sent-sms', (shelf.Request request) async {
-  updateOutput("fetching sent sms");
+    router.get('/get-sent-sms', (shelf.Request request) async {
+      updateOutput("fetching sent sms");
 
-  List<SmsMessage> messages = await telephony.getSentSms();
-  List<Map<String, String>> smsList = [];
-  for (SmsMessage message in messages) {
-    smsList.add({
-      'address': message.address ?? "unknown",
-      'body': message.body ?? "unknown",
-      'date': message.date.toString(),
+      List<SmsMessage> messages = await telephony.getSentSms();
+      List<Map<String, String>> smsList = [];
+      for (SmsMessage message in messages) {
+        smsList.add({
+          'address': message.address ?? "unknown",
+          'body': message.body ?? "unknown",
+          'date': message.date.toString(),
+        });
+      }
+
+      updateOutput("Received GET request");
+
+      var data = {
+        'message': 'This is a GET request',
+        'timestamp': DateTime.now().toIso8601String(),
+        'data': smsList,
+      };
+
+      return shelf.Response.ok(
+        jsonEncode(data),
+        headers: {'Content-Type': 'application/json'},
+      );
     });
-  }
-
-  updateOutput("Received GET request");
-
-  var data = {
-    'message': 'This is a GET request',
-    'timestamp': DateTime.now().toIso8601String(),
-    'data': smsList,
-  };
-
-  return shelf.Response.ok(
-    jsonEncode(data),
-    headers: {'Content-Type': 'application/json'},
-  );
-});
 
 // handles all the sent sms wth timestamps
     router.get('/get-sent-sms/<time|.*>',
@@ -236,11 +239,21 @@ router.get('/get-sent-sms', (shelf.Request request) async {
       final String message = data['message'];
 
       // Send an SMS
-      await telephony.sendSms(
-        to: phoneNumber,
-        isMultipart: true,
-        message: message,
-      );
+      try {
+        await telephony.sendSms(
+          to: phoneNumber,
+          isMultipart: true,
+          message: message,
+        );
+      } catch (e) {
+        print(e);
+        updateOutput("ERROR: ${e.toString()}");
+        return shelf.Response.internalServerError(
+            body: jsonEncode({'error': e.toString()}));
+      }
+      // await bs.BackgroundSms.sendMessage(
+      //     phoneNumber: "0920945085", message: "Message");
+
       updateOutput("SMS sent to $phoneNumber");
       return shelf.Response.ok('SMS sent to $phoneNumber');
     });
